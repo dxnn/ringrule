@@ -51,7 +51,7 @@ function nearest(nodes, addr) {
   var closest, min = Infinity
 
   for(var i = 0; i < nodes.length; i++) {
-    var node = nodes[0]
+    var node = nodes[i]
     var d = distance(node.addr, addr)
     if(d >= min) continue
     min = d
@@ -70,7 +70,9 @@ function addr_to_coords(addr) {
 }
 
 function addr_to_color(addr) {
-  return 'green'
+  var n = (addr[0] + addr[1] + addr[2] + addr[3]) + (addr[0] * addr[1] * addr[2] * addr[3])
+  var color = 'hsla(' + n%360 + ', 100%, 70%, 1)'
+  return color
 }
 
 
@@ -114,7 +116,7 @@ build_pipeline()
 function build_pipeline() {
   pipeline = pipe( wrap(wrapper, 'data')
                  , add_area_rects, add_nodes, add_edges
-                 , draw_it )
+                 , magnify(3), draw_it )
 }
 
 
@@ -154,6 +156,20 @@ function add_edges(env) {
   return env
 }
 
+
+function magnify(n) {
+  return function(env) {
+    env.shapes.map(function(shape) {
+      shape.x *= n
+      shape.y *= n
+      shape.w *= n
+      shape.h *= n
+      shape.r *= n
+      return shape
+    })
+    return env
+  }
+}
 
 
 function draw_it(env) {
@@ -211,6 +227,17 @@ function draw_rect(ctx, x, y, w, h, stroke_color, fill_color, line_width) {
   ctx.fillRect(x, y, w, h)
 }
 
+
+
+// INIT
+
+function init() {
+  rns(10)
+  show_graph()
+}
+
+
+init()
 
 
 // HELPERS

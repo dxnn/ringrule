@@ -28,6 +28,33 @@ function randnode() {
   return node
 }
 
+function distance(a1, a2) {
+  return dist16(a1[0], a2[0])
+       + dist16(a1[1], a2[1])
+       + dist16(a1[2], a2[2])
+       + dist16(a1[3], a2[3])
+}
+
+function dist16(h1, h2) {
+  var d = Math.abs(h1-h2)
+  return d < 8 ? d : 16-d
+}
+
+function nearest(nodes, addr) {
+  var closest, min = Infinity
+
+  for(var i = 0; i < nodes.length; i++) {
+    var node = nodes[0]
+    var d = distance(node.addr, addr)
+    if(d >= min) continue
+    min = d
+    closest = node
+  }
+
+  return closest
+}
+
+
 
 
 
@@ -80,7 +107,14 @@ function wrap(env, prop) {
 }
 
 function add_area_rects(env) {
-
+  for(var x = 0; x < 256; x++) {
+    for(var y = 0; y < 256; y++) {
+      var node = nearest(env.data.V, coords_to_addr(x, y))
+      var color = addr_to_color(node.addr)
+      var shape = {shape: 'rect', x:x, y:y, w:1, h:1, color: color}
+      env.shapes.push(shape)
+    }
+  }
   return env
 }
 

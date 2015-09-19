@@ -28,6 +28,13 @@ function randnode() {
   return node
 }
 
+function rns(n) {
+  for(var i = 0; i < n; i++) {
+    randnode()
+  }
+}
+
+
 function distance(a1, a2) {
   return dist16(a1[0], a2[0])
        + dist16(a1[1], a2[1])
@@ -53,6 +60,19 @@ function nearest(nodes, addr) {
 
   return closest
 }
+
+function coords_to_addr(x, y) {
+  return [Math.floor(x/16), x%16, Math.floor(y/16), y%16]
+}
+
+function addr_to_coords(addr) {
+  return {x: addr[0]*16 + addr[1], y: addr[2]*16 + addr[3]}
+}
+
+function addr_to_color(addr) {
+  return 'green'
+}
+
 
 
 
@@ -111,7 +131,7 @@ function add_area_rects(env) {
     for(var y = 0; y < 256; y++) {
       var node = nearest(env.data.V, coords_to_addr(x, y))
       var color = addr_to_color(node.addr)
-      var shape = {shape: 'rect', x:x, y:y, w:1, h:1, color: color}
+      var shape = {shape: 'rect', x:x, y:y, w:1, h:1, fill: color}
       env.shapes.push(shape)
     }
   }
@@ -119,7 +139,13 @@ function add_area_rects(env) {
 }
 
 function add_nodes(env) {
-
+  env.data.V.forEach(function(node) {
+    var pair = addr_to_coords(node.addr)
+    var color = 'black'
+    var shape = {shape: 'rect', x: pair.x, y: pair.y, w: 1, h: 1, fill: color}
+    env.shapes.push(shape)
+  }
+)
   return env
 }
 

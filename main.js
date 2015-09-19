@@ -91,22 +91,15 @@ document.addEventListener('keypress', function(ev) {
   var s = 115
 
   if(key === n) {
-    build_pipeline()
+    randnode()
     pipeline(G)
   }
 
   if(key === p) {
-    build_pipeline()
+    G.V.pop()
     pipeline(G)
   }
 
-  if(key === a) {
-    pipeline(G)
-  }
-
-  if(key === s) {
-    pipeline(G)
-  }
 })
 
 var wrapper = {data: [], params: {}, shapes: []}

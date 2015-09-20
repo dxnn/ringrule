@@ -166,9 +166,13 @@ function magnify(n) {
 
 
 function draw_it(env) {
-  env.shapes.forEach(function(node) {
-    draw_shape(ctx, node)
-  })
+  // env.shapes.forEach(function(node) {
+  //   draw_shape(ctx, node)
+  // })
+  var shapes = env.shapes
+  for(var i = 0, len = shapes.length; i < len; i++) {
+    draw_shape(ctx, shapes[i])
+  }
 }
 
 function draw_shape(ctx, node) {

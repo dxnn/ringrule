@@ -22,7 +22,7 @@ function add_network(net) {
 
 var webrtc = { name: 'webrtc'
              , nabes: []
-             , send: function(id, msg) { G.V.filter(eq('id', id)).forEach(function(node) { node.receive(msg) }) }
+             , send: function(id, msg) { find_node(id).forEach(function(node) { node.receive(msg) }) }
              , receive: function(cb) {}
              , connect: function(id) {}
              , disconnect: function(id) {}
@@ -161,6 +161,11 @@ function add_edge(edge) {
   // add an edge to the simulator
   G.E.push(edge)
 }
+
+function find_node(id) {
+  return G.V.filter(eq('id', id))
+}
+
 
 function connect_node(node) {
   // shake with a neighbor
@@ -310,7 +315,15 @@ function add_nodes(env) {
 }
 
 function add_edges(env) {
-
+  env.data.V.forEach(function(node) {
+    var pair1 = addr_to_coords(node.addr)
+    var color = 'blue'
+    node.nabes.forEach(function(nabe) {
+      var pair2 = addr_to_coords(nabe)
+      var shape = {shape: 'line', x1: pair1.x, y1: pair1.y, x2: pair2.x, y2: pair2.y, stroke: color}
+      env.shapes.push(shape)
+    })
+  })
   return env
 }
 
@@ -318,6 +331,10 @@ function add_edges(env) {
 function magnify(n) {
   return function(env) {
     env.shapes.map(function(shape) {
+      shape.x1 *= n
+      shape.y1 *= n
+      shape.x2 *= n
+      shape.y2 *= n
       shape.x *= n
       shape.y *= n
       shape.w *= n

@@ -20,12 +20,36 @@ function add_network(net) {
   nets[net.name] = net
 }
 
+var webrtc = { name: webrtc
+             , nabes: []
+             , send: function(id, msg) {}
+             , receive: function(cb) {}
+             , connect: function(id) {}
+             , disconnect: function(id) {}
+             }
+
+add_network(webrtc)
+
+
+// ROUTING STUFF
+
+// there's a routing table between the low-level network interfaces and the network modules, so neither side has to think about which node lives on which physical network.
+
+var routing = {}
+
+routing.table = {} // id -> network
+routing.send = function(id, msg) { nets[routing.table[id]].send(id, msg) }
+routing.connect = function(id) {} // THINK: how do we fill out the routing table??
+
 
 // NODE STUFF
 
-function make_node(id, netname, props) {
+function make_node(id, props) {
+  // inside here, we're a single node.
+
   var addr = id_to_addr(id)
   var nabes = [addr]
+  var data = {}
 
   function id_to_addr(id) {
     // FIXME: temporary
@@ -61,10 +85,14 @@ function make_node(id, netname, props) {
 
   function query(msg) {
     // return some piece of information or something (?)
+    var val = data[msg.key]
+    // TODO: send it back
   }
 
   function store(msg) {
     // store some piece of information
+    data[msg.key] = msg.val
+    // TODO: send back a receipt?
   }
 
   function trash(msg) {
@@ -72,8 +100,9 @@ function make_node(id, netname, props) {
   }
 
   function send(addr, msg) {
-    // pass msg to our neighbor at addr
-    // hit the underlying network
+    // pass msg to a neighbor closer to addr
+    var nabe = nearest(nabes, addr)
+    routing.send(nabe, msg)
   }
 
 

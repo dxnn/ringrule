@@ -31,21 +31,20 @@ var webrtc = { name: webrtc
 add_network(webrtc)
 
 
-// ROUTING STUFF
-
-// there's a routing table between the low-level network interfaces and the network modules, so neither side has to think about which node lives on which physical network.
-
-var routing = {}
-
-routing.table = {} // id -> network
-routing.send = function(id, msg) { nets[routing.table[id]].send(id, msg) }
-routing.connect = function(id) {} // THINK: how do we fill out the routing table??
-
-
 // NODE STUFF
 
 function make_node(id, props) {
   // inside here, we're a single node.
+
+  // start routing stuff
+  // there's a routing table between the low-level network interfaces and the network modules, so neither side has to think about which node lives on which physical network.
+  var routing = {}
+
+  routing.table = {} // id -> network
+  routing.send = function(id, msg) { nets[routing.table[id]].send(id, msg) }
+  routing.shake = function(id, msg) { if(shake(msg)) routing.table[id] = 'webrtc' /*hack*/ }
+  routing.connect = function(id) {} // THINK: how do we fill out the routing table??
+  // end routing stuff
 
   var addr = id_to_addr(id)
   var nabes = [addr]
@@ -60,7 +59,7 @@ function make_node(id, props) {
     var next = passthru(msg)
     if(next) return false
 
-    if(msg.type === 'shake') return shake(msg)
+    if(msg.type === 'shake') return routing.shake(msg.node, msg) // hack hack hack
     if(msg.type === 'query') return query(msg)
     if(msg.type === 'store') return store(msg)
     return trash(msg)
@@ -68,10 +67,10 @@ function make_node(id, props) {
 
   function passthru(msg) {
     if(!msg.addr) return true // this is weird
-    var nearest = nearest(nabes, msg.addr)
-    if(nearest === id) return false
-    send(nearest, msg)
-    return nearest
+    var nabe = nearest(nabes, msg.addr)
+    if(nabe === id) return false
+    send(nabe, msg)
+    return nabe
   }
 
   function shake(msg) {
@@ -80,13 +79,16 @@ function make_node(id, props) {
 
     // THINK: msg.node is the network layer's "self" version, which must contain a unique id field
     // THINK: maybe only expose the first ~6 digits of addr, until a collision forces more. then take turns sharing a digit, until the collision is resolved...
+
     nabes.push(msg.node)
+    return true
   }
 
   function query(msg) {
     // return some piece of information or something (?)
     var val = data[msg.key]
-    // TODO: send it back
+    // TODO: fix id/addr conflation
+    send(msg.from, {addr: msg.from, type: 'result', val: val, from: id})
   }
 
   function store(msg) {
@@ -113,7 +115,6 @@ function make_node(id, props) {
          , nabes: nabes
          , props: props
          , receive: receive
-         , netname: netname
          }
 }
 
@@ -167,15 +168,14 @@ function dist16(h1, h2) {
   return d < 8 ? d : 16-d
 }
 
-function nearest(nodes, addr) {
+function nearest(nabes, addr) {
   var closest, min = Infinity
 
-  for(var i = 0; i < nodes.length; i++) {
-    var node = nodes[i]
-    var d = distance(node.addr, addr)
+  for(var i = 0; i < nabes.length; i++) {
+    var d = distance(nabes[i], addr)
     if(d >= min) continue
     min = d
-    closest = node
+    closest = nabes[i]
   }
 
   return closest
@@ -241,10 +241,11 @@ function wrap(env, prop) {
 }
 
 function add_area_rects(env) {
+  var addrs = env.data.V.map(prop('addr'))
   for(var x = 0; x < 256; x++) {
     for(var y = 0; y < 256; y++) {
-      var node = nearest(env.data.V, coords_to_addr(x, y))
-      var color = addr_to_color(node.addr)
+      var nabe = nearest(addrs, coords_to_addr(x, y))
+      var color = addr_to_color(nabe)
       var shape = {shape: 'rect', x:x, y:y, w:1, h:1, fill: color}
       env.shapes.push(shape)
     }

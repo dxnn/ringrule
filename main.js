@@ -1,15 +1,106 @@
+// One manyringed network to bind them all together
+
 var el = document.getElementById.bind(document)
 
 var el_canvas = el('canvas')
 var ctx = el_canvas.getContext('2d')
 
 var G = {V: [], E: []}
+var nets = {}
+
+// NETWORK STUFF
+
+function add_network(net) {
+  // TODO: check for net.name
+  // TODO: check for net.send(msg, nabe)
+  // TODO: check for net.receive(cb(msg, nabe))
+  // TODO: check for net.connect(???)
+  // TODO: check for net.disconnect(nabe)
+  // TODO: a nabe has an id, but otherwise could be anything
+  nets[net.name] = net
+}
+
+
+// NODE STUFF
+
+function make_node(id, netname, props) {
+  var addr = id_to_addr(id)
+  var nabes = [addr]
+
+  function id_to_addr(id) {
+    // FIXME: temporary
+    return id
+  }
+
+  function receive(msg) {
+    var next = passthru(msg)
+    if(next) return false
+
+    if(msg.type === 'shake') return shake(msg)
+    if(msg.type === 'query') return query(msg)
+    if(msg.type === 'store') return store(msg)
+    return trash(msg)
+  }
+
+  function passthru(msg) {
+    if(!msg.addr) return true // this is weird
+    var nearest = nearest(nabes, msg.addr)
+    if(nearest === id) return false
+    send(nearest, msg)
+    return nearest
+  }
+
+  function shake(msg) {
+    // TODO: is msg.node really something we should be connected to?
+    // TODO: should we cancel an existing connection?
+
+    // THINK: msg.node is the network layer's "self" version, which must contain a unique id field
+    // THINK: maybe only expose the first ~6 digits of addr, until a collision forces more. then take turns sharing a digit, until the collision is resolved...
+    nabes.push(msg.node)
+  }
+
+  function query(msg) {
+    // return some piece of information or something (?)
+  }
+
+  function store(msg) {
+    // store some piece of information
+  }
+
+  function trash(msg) {
+    // do nothing
+  }
+
+  function send(addr, msg) {
+    // pass msg to our neighbor at addr
+    // hit the underlying network
+  }
+
+
+
+
+  return { id: id
+         , addr: addr
+         , nabes: nabes
+         , props: props
+         , receive: receive
+         , netname: netname
+         }
+}
+
+
+
+
+
+// SIMULATOR STUFF
 
 function add_node(node) {
+  // add a node to the simulator
   G.V.push(node)
 }
 
 function add_edge(edge) {
+  // add an edge to the simulator
   G.E.push(edge)
 }
 
@@ -74,7 +165,6 @@ function addr_to_color(addr) {
   var color = 'hsla(' + n%360 + ', 100%, 70%, 1)'
   return color
 }
-
 
 
 

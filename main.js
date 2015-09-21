@@ -20,9 +20,9 @@ function add_network(net) {
   nets[net.name] = net
 }
 
-var webrtc = { name: webrtc
+var webrtc = { name: 'webrtc'
              , nabes: []
-             , send: function(id, msg) {}
+             , send: function(id, msg) { G.V.filter(eq('id', id)).forEach(function(node) { node.receive(msg) }) }
              , receive: function(cb) {}
              , connect: function(id) {}
              , disconnect: function(id) {}
@@ -41,13 +41,13 @@ function make_node(id, props) {
   var routing = {}
 
   routing.table = {} // id -> network
-  routing.send = function(id, msg) { nets[routing.table[id]].send(id, msg) }
+  routing.send = function(id, msg) { nets['webrtc'].send(id, msg) } // nets[routing.table[id]].send(id, msg) }
   routing.shake = function(id, msg) { if(shake(msg)) routing.table[id] = 'webrtc' /*hack*/ }
   routing.connect = function(id) {} // THINK: how do we fill out the routing table??
   // end routing stuff
 
   var addr = id_to_addr(id)
-  var nabes = [addr]
+  var nabes = []
   var data = {}
 
   function id_to_addr(id) {
@@ -67,8 +67,8 @@ function make_node(id, props) {
 
   function passthru(msg) {
     if(!msg.addr) return true // this is weird
-    var nabe = nearest(nabes, msg.addr)
-    if(nabe === id) return false
+    var nabe = nearest(nabes.concat([addr]), msg.addr)
+    if(nabe === addr) return false
     send(nabe, msg)
     return nabe
   }
@@ -80,9 +80,37 @@ function make_node(id, props) {
     // THINK: msg.node is the network layer's "self" version, which must contain a unique id field
     // THINK: maybe only expose the first ~6 digits of addr, until a collision forces more. then take turns sharing a digit, until the collision is resolved...
 
+    // is this node already in our neighbors?
+    if(nabes.some(eqeq(msg.node))) return false
+
+    // add our new neighbor
     nabes.push(msg.node)
+
+    // ask them to add us back
+    send(msg.node, {type: 'shake', node: addr, addr: msg.node})
+
+    // is this our first handshake? in that case we should try to shake with all of our other neighbors.
+    shake_all()
+
     return true
   }
+
+  function shake_all() {
+    var addrs = all_nabe_addrs(addr)
+    addrs.forEach(function(nabe) {
+      send(nabe, {type: 'shake', node: addr, addr: nabe})
+    })
+  }
+
+  function all_nabe_addrs(addr) {
+    return addr.reduce(function(acc, v, k) {
+      var a1 = addr.slice(), a2 = addr.slice()
+      a1[k] = (a1[k]+1)%16
+      a2[k] = a2[k] ? a2[k]-1 : 15
+      return acc.concat([a1, a2])
+    }, [])
+  }
+
 
   function query(msg) {
     // return some piece of information or something (?)
@@ -134,6 +162,17 @@ function add_edge(edge) {
   G.E.push(edge)
 }
 
+function connect_node(node) {
+  // shake with a neighbor
+  var nabe = randel(G.V)
+  if(!nabe) return false // first node
+
+  nabe.receive({type: 'shake', node: node.addr, addr: nabe.addr})
+
+  // that should trigger the node to send shake messages to all other neighbors
+}
+
+
 function show_graph() {
   pipeline(G)
 }
@@ -142,10 +181,16 @@ function rand(n) {
   return Math.floor(Math.random()*n)
 }
 
+function randel(list) {
+  return list[rand(list.length)]
+}
+
+
 function randnode() {
   var addr = [rand(16), rand(16), rand(16), rand(16)]
-  var node = {addr: addr}
+  var node = make_node(addr, {})
   add_node(node)
+  connect_node(node)
   return node
 }
 
@@ -362,6 +407,13 @@ init()
 function noop() {}
 
 function eq(attr, val) {return function(obj) {return obj[attr] === val}}
+
+function eqeq(o1, o2) { return !o2 ? cmp(o1) : cmp(o1)(o2)}
+
+function cmp(o1) {
+  return function(o2) {
+    return (o1.length !== o2.length) ? false
+         : Object.keys(o1).every(function(key) {return o1[key] === o2[key]})}}
 
 function unique(v, k, list) {return list.indexOf(v) === k}
 
